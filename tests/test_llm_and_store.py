@@ -78,3 +78,18 @@ def test_store_rejects_unknown_action(tmp_path):
     store = Store(str(tmp_path / "s.db"))
     with pytest.raises(Exception):
         store.record(place_id="a", place_name="A", category="park", action="exploded")
+
+
+def test_store_list_recent_and_clear(tmp_path):
+    store = Store(str(tmp_path / "s.db"))
+    assert store.list_recent() == []
+    store.record(place_id="p1", place_name="Park 1", category="park", action="accepted")
+    store.record(place_id="p2", place_name="Park 2", category="garden", action="done", duration_minutes=25)
+    recent = store.list_recent(limit=10)
+    assert len(recent) == 2
+    assert recent[0]["place_name"] == "Park 2"  # most recent first
+    assert recent[1]["place_name"] == "Park 1"
+
+    store.clear()
+    assert store.list_recent() == []
+

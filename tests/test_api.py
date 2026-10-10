@@ -158,3 +158,43 @@ def test_overpass_always_failing_gives_friendly_service_error(client, net):
     finally:
         client.app.state.client._transport = old_transport
 
+
+def test_history_api_endpoints_and_clearing_removes_from_prompt(client, net):
+    # Initially empty history
+    assert client.get("/api/history").json() == {"events": []}
+
+    # Add feedback
+    fb = {"place_id": "way/11", "place_name": "Riverside Park", "category": "park", "action": "done",
+          "effort": "easy", "duration_minutes": 25}
+    client.post("/api/feedback", json=fb)
+
+    hist = client.get("/api/history").json()["events"]
+    assert len(hist) == 1
+    assert hist[0]["place_name"] == "Riverside Park"
+
+    # Make suggest request: prompt should include 25 in completed_minutes_last_24h
+    net.requests.clear()
+    if hasattr(client.app.state, "weather_cache") and client.app.state.weather_cache:
+        client.app.state.weather_cache.clear()
+    if hasattr(client.app.state, "places_cache") and client.app.state.places_cache:
+        client.app.state.places_cache.clear()
+    client.post("/api/suggest", json=BODY)
+    prompt = next(r for r in net.requests if r.url.path == "/api/chat").content.decode()
+    assert '"completed_minutes_last_24h": 25' in prompt or '\\"completed_minutes_last_24h\\": 25' in prompt
+
+    # Clear history
+    del_res = client.delete("/api/history")
+    assert del_res.status_code == 204
+    assert client.get("/api/history").json() == {"events": []}
+
+    # Next suggest request should have 0 in completed_minutes_last_24h
+    net.requests.clear()
+    if hasattr(client.app.state, "weather_cache") and client.app.state.weather_cache:
+        client.app.state.weather_cache.clear()
+    if hasattr(client.app.state, "places_cache") and client.app.state.places_cache:
+        client.app.state.places_cache.clear()
+    client.post("/api/suggest", json=BODY)
+    prompt_after = next(r for r in net.requests if r.url.path == "/api/chat").content.decode()
+    assert '"completed_minutes_last_24h": 0' in prompt_after or '\\"completed_minutes_last_24h\\": 0' in prompt_after
+
+

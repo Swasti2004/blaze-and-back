@@ -298,6 +298,31 @@ button[disabled] { opacity: 0.6; cursor: progress; }
 }
 .outing-body p:first-child { font-size: 1.125rem; font-weight: 600; }
 
+/* ---------- history ---------- */
+.history-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.history-item {
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 0.9375rem;
+}
+.history-meta {
+  color: var(--muted);
+}
+
 footer { margin-top: 3rem; color: var(--muted); font-size: 0.875rem; }
 
 @media (prefers-reduced-motion: reduce) {

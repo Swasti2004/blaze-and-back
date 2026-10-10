@@ -313,4 +313,49 @@ function sendFeedback(s, action) {
   });
 }
 
+// ---------- history ----------
+async function loadHistory() {
+  const list = $("history-list");
+  const empty = $("history-empty");
+  try {
+    const res = await fetch("/api/history");
+    const data = await res.json();
+    const events = data.events || [];
+    list.replaceChildren();
+    if (events.length === 0) {
+      empty.hidden = false;
+    } else {
+      empty.hidden = true;
+      for (const ev of events) {
+        const item = el(
+          "li",
+          { className: "history-item" },
+          el("strong", {}, ev.place_name),
+          el("span", { className: "history-meta" }, ` - ${ev.action} (${ev.category || "place"}, ${ev.duration_minutes || 0}m)`)
+        );
+        list.append(item);
+      }
+    }
+  } catch {
+    /* History fetching is best effort. */
+  }
+}
+
+$("clear-history").addEventListener("click", async () => {
+  try {
+    await fetch("/api/history", { method: "DELETE" });
+    await loadHistory();
+  } catch {
+    /* Best effort */
+  }
+});
+
+// Refresh history on done action
+const origSendFeedback = sendFeedback;
+sendFeedback = function(s, action) {
+  origSendFeedback(s, action);
+  setTimeout(loadHistory, 300);
+};
+
 checkHealth();
+loadHistory();

@@ -75,6 +75,16 @@ def create_app(
         request.app.state.store.record(**body.model_dump())
         return Response(status_code=204)
 
+    @app.get("/api/history")
+    async def get_history(request: Request) -> dict:
+        events = request.app.state.store.list_recent(limit=10)
+        return {"events": events}
+
+    @app.delete("/api/history", status_code=204)
+    async def delete_history(request: Request) -> Response:
+        request.app.state.store.clear()
+        return Response(status_code=204)
+
     # Mounted last so the API routes above take priority.
     app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
     return app

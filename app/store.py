@@ -86,3 +86,19 @@ class Store:
         return History(
             recent_place_ids=recent_ids, recent_load_minutes=int(load), done_last_7d=int(done_7d)
         )
+
+    def list_recent(self, limit: int = 10) -> list[dict]:
+        """Return the most recent events."""
+        with closing(self._connect()) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, ts, place_id, place_name, category, action, effort, duration_minutes "
+                "FROM events ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def clear(self) -> None:
+        """Clear all stored events."""
+        with closing(self._connect()) as conn, conn:
+            conn.execute("DELETE FROM events")
