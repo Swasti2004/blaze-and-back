@@ -38,6 +38,11 @@ function showError(message) {
   const box = $("error");
   box.textContent = message;
   box.hidden = !message;
+  if (message) {
+    box.tabIndex = -1;
+    box.focus();
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 }
 
 // ---------- model status ----------
@@ -180,7 +185,13 @@ function renderResults(data) {
   const list = $("suggestions");
   list.replaceChildren();
   for (const s of data.suggestions) list.append(renderSuggestion(s));
-  section.scrollIntoView({ behavior: "smooth", block: "start" });
+  const heading = $("results-heading");
+  if (heading) {
+    heading.focus();
+    heading.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderSuggestion(s) {
