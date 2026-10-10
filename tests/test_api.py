@@ -90,3 +90,19 @@ def test_health_reports_model(client, net):
 
 def test_static_front_end_is_served(client):
     assert client.get("/").status_code == 200
+
+
+def test_outside_lookups_are_cached_for_ten_minutes(client, net):
+    # First call: outside requests are made
+    res1 = client.post("/api/suggest", json=BODY)
+    assert res1.status_code == 200
+    outside_first = [r for r in net.requests if r.url.host in {"api.open-meteo.com", "overpass-api.de"}]
+    assert len(outside_first) == 2
+
+    # Second identical call: outside services must not be called again
+    net.requests.clear()
+    res2 = client.post("/api/suggest", json=BODY)
+    assert res2.status_code == 200
+    outside_second = [r for r in net.requests if r.url.host in {"api.open-meteo.com", "overpass-api.de"}]
+    assert len(outside_second) == 0
+

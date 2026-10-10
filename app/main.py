@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
+from .cache import SimpleTTLCache
 from .config import Settings
 from .models import FeedbackIn, SuggestRequest, SuggestResponse
 from .service import ServiceError, suggest
@@ -28,6 +29,8 @@ def create_app(
         cfg = settings or Settings.from_env()
         app.state.settings = cfg
         app.state.store = Store(cfg.db_path)
+        app.state.weather_cache = SimpleTTLCache(ttl_seconds=600.0)
+        app.state.places_cache = SimpleTTLCache(ttl_seconds=600.0)
         async with httpx.AsyncClient(
             headers={"User-Agent": cfg.user_agent}, timeout=25.0, transport=transport
         ) as client:
@@ -57,7 +60,12 @@ def create_app(
     async def api_suggest(req: SuggestRequest, request: Request) -> SuggestResponse:
         try:
             return await suggest(
-                request.app.state.client, request.app.state.settings, request.app.state.store, req
+                request.app.state.client,
+                request.app.state.settings,
+                request.app.state.store,
+                req,
+                weather_cache=getattr(request.app.state, "weather_cache", None),
+                places_cache=getattr(request.app.state, "places_cache", None),
             )
         except ServiceError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc

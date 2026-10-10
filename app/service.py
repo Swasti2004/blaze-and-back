@@ -6,17 +6,17 @@ import asyncio
 
 import httpx
 
+from .cache import SimpleTTLCache
 from .config import Settings
 from .fallback import rank_fallback
 from .filters import filter_places, stay_minutes
-from .geo import geocode
+from .geo import coarsen, geocode
 from .llm import LLMError, ask_model, parse_picks
 from .models import Pick, Place, SuggestionOut, SuggestRequest, SuggestResponse
 from .places import fetch_places
 from .prompt import SYSTEM_PROMPT, build_user_prompt
 from .store import Store
 from .weather import fetch_weather
-
 
 class ServiceError(Exception):
     """An error that should be shown to the user with a specific HTTP status."""
@@ -59,22 +59,56 @@ def _to_output(pick: Pick, place: Place) -> SuggestionOut:
 
 
 async def suggest(
-    client: httpx.AsyncClient, settings: Settings, store: Store, req: SuggestRequest
+    client: httpx.AsyncClient,
+    settings: Settings,
+    store: Store,
+    req: SuggestRequest,
+    weather_cache: SimpleTTLCache | None = None,
+    places_cache: SimpleTTLCache | None = None,
 ) -> SuggestResponse:
-    lat, lon, label = await _resolve_location(client, settings, req)
+    w_cache = weather_cache
+    p_cache = places_cache
 
-    try:
-        weather, places = await asyncio.gather(
-            fetch_weather(client, settings.weather_url, lat, lon, settings.coord_decimals),
+    lat, lon, label = await _resolve_location(client, settings, req)
+    lat_c, lon_c = coarsen(lat, lon, settings.coord_decimals)
+
+    weather_key = (lat_c, lon_c)
+    places_key = (lat_c, lon_c, settings.search_radius_m)
+
+    cached_weather = w_cache.get(weather_key) if w_cache is not None else None
+    cached_places = p_cache.get(places_key) if p_cache is not None else None
+
+    tasks = []
+    if cached_weather is None:
+        tasks.append(fetch_weather(client, settings.weather_url, lat, lon, settings.coord_decimals))
+    if cached_places is None:
+        tasks.append(
             fetch_places(
                 client, settings.overpass_url, lat, lon, settings.search_radius_m,
                 settings.coord_decimals,
-            ),
+            )
         )
-    except httpx.HTTPError as exc:
-        raise ServiceError(
-            502, "Could not reach the weather or places service. Check your connection."
-        ) from exc
+
+    if tasks:
+        try:
+            results = await asyncio.gather(*tasks)
+        except httpx.HTTPError as exc:
+            raise ServiceError(
+                502, "Could not reach the weather or places service. Check your connection."
+            ) from exc
+
+        idx = 0
+        if cached_weather is None:
+            cached_weather = results[idx]
+            if w_cache is not None:
+                w_cache.set(weather_key, cached_weather)
+            idx += 1
+        if cached_places is None:
+            cached_places = results[idx]
+            if p_cache is not None:
+                p_cache.set(places_key, cached_places)
+
+    weather, places = cached_weather, cached_places
 
     result = filter_places(places, weather, req.minutes, req.energy, settings.allow_after_dark)
     if result.blocked_reason:
