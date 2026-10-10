@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
+import random
 import re
 
 import httpx
 
 from .geo import coarsen, haversine_m
 from .models import Place
+
+RETRY_STATUS_CODES = {429, 502, 503, 504}
+MAX_RETRIES = 2
 
 # Walking assumptions (documented in docs/ARCHITECTURE.md).
 DETOUR_FACTOR = 1.3  # streets are longer than straight lines
@@ -108,6 +113,21 @@ async def fetch_places(
     client: httpx.AsyncClient, url: str, lat: float, lon: float, radius_m: int, decimals: int
 ) -> list[Place]:
     lat_c, lon_c = coarsen(lat, lon, decimals)
-    response = await client.post(url, data={"data": build_query(lat_c, lon_c, radius_m)})
-    response.raise_for_status()
-    return parse_overpass(response.json(), lat, lon)
+    query = build_query(lat_c, lon_c, radius_m)
+
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = await client.post(url, data={"data": query})
+            if response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
+                delay = 0.5 * (2**attempt) + random.uniform(0.1, 0.3)
+                await asyncio.sleep(delay)
+                continue
+            response.raise_for_status()
+            return parse_overpass(response.json(), lat, lon)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
+                delay = 0.5 * (2**attempt) + random.uniform(0.1, 0.3)
+                await asyncio.sleep(delay)
+                continue
+            raise
+    raise httpx.HTTPError("Max retries exceeded")

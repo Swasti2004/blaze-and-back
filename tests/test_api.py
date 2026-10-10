@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import httpx
+
 from tests.conftest import WEATHER_OK, llm_reply
 
 BODY = {"lat": 51.5, "lon": -0.125, "minutes": 60, "energy": "medium", "interests": ["quiet"]}
@@ -105,4 +107,54 @@ def test_outside_lookups_are_cached_for_ten_minutes(client, net):
     assert res2.status_code == 200
     outside_second = [r for r in net.requests if r.url.host in {"api.open-meteo.com", "overpass-api.de"}]
     assert len(outside_second) == 0
+
+
+def test_overpass_retries_politely_on_429(monkeypatch):
+    import asyncio
+    import app.places
+    from tests.conftest import OVERPASS
+
+    # Speed up sleep in tests
+    sleep_calls = []
+    async def fake_sleep(d):
+        sleep_calls.append(d)
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+
+    attempts = 0
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return httpx.Response(429, json={"error": "rate limited"})
+        return httpx.Response(200, json=OVERPASS)
+
+    transport = httpx.MockTransport(handler)
+    async def run():
+        async with httpx.AsyncClient(transport=transport) as client:
+            return await app.places.fetch_places(client, "http://overpass/api", 51.5, -0.125, 3000, 3)
+
+    places = asyncio.run(run())
+    assert len(places) > 0
+    assert attempts == 2
+    assert len(sleep_calls) == 1
+
+
+def test_overpass_always_failing_gives_friendly_service_error(client, net):
+    # Simulate Overpass failing permanently with 504 Gateway Timeout
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "overpass-api.de":
+            return httpx.Response(504, json={"error": "gateway timeout"})
+        return net(request)
+
+    # Use a location not cached yet
+    body = {**BODY, "lat": 48.8566, "lon": 2.3522}
+    # Temporarily monkeypatch client transport
+    old_transport = client.app.state.client._transport
+    client.app.state.client._transport = httpx.MockTransport(handler)
+    try:
+        res = client.post("/api/suggest", json=body)
+        assert res.status_code == 502
+        assert "Could not reach the weather or places service" in res.json()["detail"]
+    finally:
+        client.app.state.client._transport = old_transport
 
