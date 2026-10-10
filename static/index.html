@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Touch Grass Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Touch Grass Planner</h1>
+      <p class="lede">Tell it how long you have. It picks somewhere nearby, then you put the phone away.</p>
+      <p id="engine-status" class="status" role="status">Checking for the local model.</p>
+    </header>
+
+    <form id="plan-form" novalidate>
+      <fieldset class="time">
+        <legend>Time free</legend>
+        <p class="big-number"><output id="minutes-out" for="minutes">45</output> <span>minutes</span></p>
+        <label class="sr-only" for="minutes">Minutes free</label>
+        <input id="minutes" name="minutes" type="range" min="15" max="240" step="5" value="45">
+      </fieldset>
+
+      <fieldset class="energy">
+        <legend>Energy</legend>
+        <div class="segments">
+          <input type="radio" id="energy-low" name="energy" value="low">
+          <label for="energy-low">Low</label>
+          <input type="radio" id="energy-medium" name="energy" value="medium" checked>
+          <label for="energy-medium">Medium</label>
+          <input type="radio" id="energy-high" name="energy" value="high">
+          <label for="energy-high">High</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="where">
+        <legend>Where are you?</legend>
+        <button type="button" id="locate" class="secondary">Use my location</button>
+        <p id="locate-status" class="hint" aria-live="polite"></p>
+        <label for="place">Or type a town or city</label>
+        <input id="place" name="place" type="text" autocomplete="off" maxlength="120">
+        <p class="hint">Your coordinates go only to the app running on your own machine. It rounds them to about 100 m before looking up weather and places.</p>
+      </fieldset>
+
+      <fieldset class="interests">
+        <legend>What sounds good? (optional)</legend>
+        <div class="chips">
+          <input type="checkbox" id="i-quiet" name="interest" value="quiet"><label for="i-quiet">Quiet</label>
+          <input type="checkbox" id="i-water" name="interest" value="water"><label for="i-water">Water</label>
+          <input type="checkbox" id="i-views" name="interest" value="views"><label for="i-views">Views</label>
+          <input type="checkbox" id="i-greenery" name="interest" value="greenery"><label for="i-greenery">Greenery</label>
+          <input type="checkbox" id="i-exercise" name="interest" value="exercise"><label for="i-exercise">Exercise</label>
+          <input type="checkbox" id="i-photography" name="interest" value="photography"><label for="i-photography">Photography</label>
+        </div>
+      </fieldset>
+
+      <button type="submit" id="go" class="primary">Find somewhere outside</button>
+    </form>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <section id="results" aria-live="polite" hidden>
+      <h2>Suggestions</h2>
+      <p id="weather-line" class="weather"></p>
+      <ul id="notes" class="notes"></ul>
+      <ol id="suggestions" class="suggestions"></ol>
+    </section>
+
+    <section id="outing" hidden>
+      <h2>Your outing</h2>
+      <div class="outing-body">
+        <p id="outing-plan"></p>
+        <p id="outing-coords" class="hint"></p>
+        <div class="actions">
+          <button type="button" id="save-card" class="primary">Save card to this device</button>
+          <a id="open-map" class="button secondary" target="_blank" rel="noopener noreferrer">Open in maps</a>
+          <button type="button" id="mark-done" class="secondary">I went</button>
+        </div>
+        <p id="outing-status" class="hint" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Open data from OpenStreetMap and Open-Meteo. Suggestions come from an open-weight model running on this machine.</p>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
