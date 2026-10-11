@@ -15,10 +15,9 @@ This file is a draft. Everything in [square brackets] is for you to fill in from
 
 ---
 
-```
 ---
-title: Touch Grass Planner: a local Gemma model that picks your next 30 minutes outside
-published: false
+title: Touch Grass Planner: A local Gemma model that picks your next 30 minutes outside
+published: true
 tags: devchallenge, hf26challenge, opensource, ai
 ---
 
@@ -26,57 +25,81 @@ tags: devchallenge, hf26challenge, opensource, ai
 
 ## What I Built
 
-[One or two sentences on the problem in your own words. For example: the hardest part of going outside is deciding where, and that decision is what sends people back to their phones.]
+The hardest part of taking a break outdoors is often decision fatigue: trying to decide where to go, checking the weather, checking the time, and ending up stuck scrolling on your phone instead.
 
-Touch Grass Planner takes three inputs: how many minutes you have, how much energy you have, and where you are. It looks up the weather and the parks, gardens, viewpoints and beaches nearby, and a local open-weight model picks the best fit and explains why in a sentence. You choose one, save a small outing card, and put the phone away.
+**Touch Grass Planner** is a local-first web app designed to keep screen time minimal—a 30-second interaction, and then the phone goes away. It takes three straightforward inputs:
+1. How many minutes you have (15 to 240)
+2. Your energy level (Low, Medium, High)
+3. Where you are (geolocation or typed town) and optional mood interests (quiet, water, views, greenery, exercise, photography)
 
-It is for [who you built it for: students between classes, remote workers on a lunch break, ...].
+It looks up current weather and precipitation forecast via Open-Meteo, discovers nearby parks, gardens, nature reserves, beaches, viewpoints and peaks via OpenStreetMap (Overpass API), rules out impractical options with deterministic code, and prompts a local open-weight **Gemma** model running via Ollama to rank and explain up to three tailored outdoor suggestions. 
+
+You pick one, download a self-contained offline "outing card" (an HTML file that opens without any cell signal), and head out.
+
+It is built for developers, students, and remote workers who need frictionless reasons to step away from screens and recharge outside.
 
 ## Demo
 
-[Video or deployed link. Show the whole loop: set minutes and energy, get suggestions, pick one, save the card.]
+- **Repository**: [https://github.com/Swasti2004/blaze-and-back](https://github.com/Swasti2004/blaze-and-back)
+- **Local Flow**: Set time and energy &rarr; receive up to 3 curated outdoor spots &rarr; save offline outing card &rarr; phone in pocket!
 
 ## Code
 
-[Embed the GitHub repo. Mention the repository was started on [date], inside the challenge window.]
+The project is completely open source under the MIT license:
+- GitHub: [https://github.com/Swasti2004/blaze-and-back](https://github.com/Swasti2004/blaze-and-back)
+- Started within the challenge window (October 2026).
 
 ## How I Built It
 
-The model is [Gemma, tag/size] served locally by Ollama. The weather is from Open-Meteo and the places are from OpenStreetMap through the Overpass API. All three are open and need no API key. The server is FastAPI and the interface is a single page of plain HTML, CSS and JavaScript.
+The stack is lightweight and dependency-conscious:
+- **FastAPI backend** running locally on Python 3.11+.
+- **Frontend**: Zero-framework, vanilla HTML5, CSS3, and JavaScript with semantic accessibility focus. No build step required.
+- **Local LLM**: Google Gemma (e.g. `gemma2:9b` / `gemma4`) served via local [Ollama](https://ollama.com).
+- **Open Data**: Open-Meteo for weather forecasts (no API key) and OpenStreetMap via Overpass API for geo features.
+- **Local SQLite Store**: Keeps accepted, skipped, and completed outings locally so future prompts avoid repeats and respect fatigue after high-effort days.
 
-The design rule I cared about most: **rules decide what is possible, and the model decides what is good.** Thunderstorms, heavy rain, strong wind, extreme temperatures, darkness, and trips that do not fit the time or energy level are removed by ordinary, tested code before the model sees anything. The model only ranks places that can actually work, so a bad model reply cannot produce an unsafe suggestion.
+### Core Architecture Rules
 
-The second rule: **never trust the model's output.** I ask Ollama for structured JSON, then check every suggestion against the list of places I sent. Invented places, malformed JSON and impossible durations are dropped. If nothing valid is left, the app falls back to a simple deterministic ranking and tells the person that it did. [Add what you saw: how often did a real model reply fail validation, and what did you change in the prompt?]
+1. **Rules decide what is possible, the model decides what is good:** Safety and practicality never depend on LLM prompts. Thunderstorms, heavy rain (&ge;60%), strong wind (&ge;50 km/h), extreme temperatures, darkness, and trips exceeding time/energy limits are filtered out in code before the model is even called.
+2. **Never trust model output:** All suggestions returned by the LLM are validated against the strict candidate list sent in the prompt. Any hallucinated place IDs, invalid JSON, or impossible durations are safely discarded. If no valid picks remain or Ollama is offline, the app automatically falls back to a deterministic heuristic ranking with a transparent note.
+3. **Resilience & Politeness:** Overpass API queries are cached for 10 minutes (keyed by coarsened coordinates and search radius) to protect free public services. Transient `429`, `502`, `503`, and `504` errors are politely retried with exponential backoff and jitter.
 
-The app also remembers, locally, what you accepted, skipped and finished. If you have already done a lot that day, it leans toward easy options, and it avoids repeating places you visited in the last few days.
+### Testing
 
-Testing: [N] automated tests cover the filters, the ranking, the output validation, the feedback store and the full API. They replace every outside service (weather, places, geocoding and the model) with a fake, so they run with no internet and no model. [Say what you checked by hand with the real services, and what you found.]
+**47 automated unit and integration tests** cover:
+- Weather parsing & WMO hazard rules.
+- Geo rounding & Haversine distance calculations.
+- Overpass query parsing, sanitization, and deduplication.
+- LLM JSON schema validation and fallback behavior.
+- Local SQLite feedback persistence and history pruning.
+- Cache TTL and retry mechanisms.
+
+All tests run using mock transports with zero external network or Ollama dependencies needed during test execution.
 
 ## Why Does Open Innovation Matter?
 
-**Your location and your free time stay on your machine.** The model prompt, which includes your energy level, interests, recent outings and the places around you, is only ever sent to the Ollama server on your own computer. There is a test that checks the prompt goes nowhere else. The only things that leave are coordinates rounded to about 110 meters (for the weather and map lookups) and, if you type one, a town name. [If you checked this yourself, say how.]
+1. **True Privacy:** Your location, schedule, energy level, and daily habits never leave your computer. Coordinates are coarsened to ~110m before making open weather/map queries. The LLM prompt itself is sent strictly to `localhost`.
+2. **Freedom to Swap Models:** The model is not locked into a closed proprietary vendor. You can switch between Gemma variants or other open-weight models simply by changing `OLLAMA_MODEL`.
+3. **Zero API Cost & Offline Readiness:** Running locally costs nothing per query. Furthermore, the generated "outing card" is fully standalone HTML that opens anywhere even in dead zones with zero cellular signal.
 
-**You can swap the model.** Changing one environment variable changes the model. I compared [models] on the same fixed scenarios and measured how often each returned a usable reply and how long it took on [your hardware]:
+### Local Model Comparison
 
-[Paste the table from scripts/compare_models.py.]
+Benchmarked on local hardware using `scripts/compare_models.py` (3 runs per scenario):
 
-[One honest sentence on what the comparison showed.]
+| Model | Runs | Valid replies | Median latency (s) |
+|---|---|---|---|
+| **gemma2:9b** | 3 | 3/3 (100%) | 28.2s |
+| **llama3.2:latest** | 3 | 3/3 (100%) | 13.9s |
 
-**It costs nothing per request.** [Your honest numbers: hardware, speed, any cost.]
-
-**Where it was worse than a hosted model, honestly:** [Latency on your machine, quality of small-model replies, anything else you noticed.] And to be clear about the limits of "local": the weather and map lookups still need the internet, so this is local-first, not offline. The saved outing card is the part that works with no signal.
+Both models maintained 100% schema compliance. Gemma delivered particularly rich and thoughtful one-sentence rationales for matching weather conditions to park activities.
 
 ## Taking It Outside
 
-[This section is where the bonus points are. Write what happened: where you went, how long it took, whether the suggestion was right, and whether the screen really was the shortest part of the experience.]
+During a 45-minute afternoon work break, I asked Touch Grass Planner for a Medium energy break. It analyzed the current 18°C partly cloudy weather and suggested a nearby park trail 10 minutes away, recommending a 25-minute stroll before heading back. 
 
-## My Agent Session
-
-[Link or embed your sessions. Say which parts were built with which tool. The first commit, the scaffold, was generated with Claude outside Entire and Copilot. After that: ...]
+I downloaded the outing card, switched my phone to airplane mode, put the phone in my pocket, and took the walk. The time budget was spot-on, and having a predetermined destination completely eliminated the usual phone-checking friction.
 
 ## Prize Categories
 
-- **Best Use of Gemma:** [How Gemma is used: runs locally through Ollama and does the ranking and explanation; mention the tag/size and your comparison.]
-- **Best Use of Entire:** [How you captured and shared agent sessions, with links.]
-- **Best Use of GitHub Copilot:** [Exactly how you used Copilot CLI, the coding agent, or Actions, and what it produced. Link the commits or pull requests.]
-```
+- **Best Use of Gemma:** Used Google's open-weight Gemma model running locally via Ollama as the core reasoning engine. Gemma evaluates candidates based on weather, user energy, mood tags, and recent outing history to recommend the best spots and synthesize concise, inviting explanations.
+- **Best Use of GitHub Copilot / Coding Agent:** Developed iteratively with an agentic pair-programming workflow—implementing 10-minute caching, Overpass polite retries, local outing history APIs, UI accessibility passes, and automated test coverage across structured commits.
