@@ -51,7 +51,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 # 3. Open http://localhost:8000
 ```
 
-If you pulled a different tag, tell the app: `export OLLAMA_MODEL=<tag>` before starting the server. The status line at the top of the page tells you whether the model was found.
+If you pulled a different tag, tell the app: `export OLLAMA_MODEL=<tag>` (or on Windows PowerShell: `$env:OLLAMA_MODEL="<tag>"`) before starting the server. Tested with `gemma2:9b`. The code's default tag is `gemma4`, which has not been tested. The status line at the top of the page tells you whether the model was found.
 
 If Ollama is not running, the app still works with the rule-based fallback and says so.
 
