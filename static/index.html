@@ -45,7 +45,10 @@
       </fieldset>
 
       <fieldset class="interests">
-        <legend>What sounds good? (optional)</legend>
+        <div class="interests-header">
+          <legend>What sounds good? (optional)</legend>
+          <button type="button" id="surprise" class="surprise-btn" title="Can't decide? Let Gemma pick a spontaneous outdoor adventure">✨ Surprise me</button>
+        </div>
         <div class="chips">
           <input type="checkbox" id="i-quiet" name="interest" value="quiet"><label for="i-quiet">Quiet</label>
           <input type="checkbox" id="i-water" name="interest" value="water"><label for="i-water">Water</label>
@@ -58,10 +61,7 @@
         <input id="custom-interests" name="custom-interests" type="text" autocomplete="off" maxlength="80" placeholder="e.g. read a book, dog walk, bird watching">
       </fieldset>
 
-      <div class="submit-actions">
-        <button type="submit" id="go" class="primary">Find somewhere outside</button>
-        <button type="button" id="surprise" class="secondary">Surprise me</button>
-      </div>
+      <button type="submit" id="go" class="primary">Find somewhere outside</button>
     </form>
 
     <p id="error" class="error" role="alert" hidden></p>

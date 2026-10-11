@@ -170,6 +170,32 @@ input[type="text"] {
   color: #fff;
 }
 
+.interests-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+.interests-header legend {
+  margin-bottom: 0;
+}
+.surprise-btn {
+  background: #f4efd9;
+  border: 1.5px solid var(--blaze-moderate);
+  color: var(--spruce-dark);
+  border-radius: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  min-height: auto;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.surprise-btn:hover {
+  background: var(--blaze-moderate);
+  color: var(--ink);
+}
+
 label[for="custom-interests"] {
   margin-top: 1rem;
 }
@@ -218,14 +244,7 @@ a.button.secondary:hover { background: #dbe6df; }
 
 button[disabled] { opacity: 0.6; cursor: progress; }
 
-.submit-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.submit-actions button {
-  width: 100%;
-}
+#go { width: 100%; }
 
 /* ---------- messages ---------- */
 .error {
