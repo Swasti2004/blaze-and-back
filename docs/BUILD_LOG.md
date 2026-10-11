@@ -11,6 +11,8 @@ Record what you really did, with which tool. The write-up is judged mostly on ho
 | 2026-10-10 | Antigravity AI Agent | Task 2: Retry Overpass politely on 429, 502, 503, 504 with jitter | Commit 361c782 |
 | 2026-10-10 | Antigravity AI Agent | Task 3: Show and clear local history via API and UI | Commit 1011db0 |
 | 2026-10-10 | Antigravity AI Agent | Task 4: Accessibility pass (focus management for results & errors) | Commit c5aa8a0 |
+| 2026-10-11 | Antigravity AI Agent | Added OpenStreetMap Nominatim fallback when Overpass is overloaded | Commit 922e796 |
+| 2026-10-11 | Antigravity AI Agent | Added custom mood input & top-level 'Surprise me' spontaneous exploration mode | Commits 94dc1ba, 4a98bd0 |
 
 ## First live run checklist
 

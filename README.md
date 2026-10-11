@@ -1,12 +1,13 @@
-# Touch Grass Planner
+# Touch Grass Planner (blaze-and-back)
 
-Tell it how long you have and how much energy you have. It looks at the weather and the parks, gardens, viewpoints and beaches nearby, asks a **local open-weight model** to pick the best fit, and gives you a small "outing card" you can save. Then you put the phone away and go outside.
+Tell it how long you have and how much energy you have. It looks at the weather and the parks, gardens, viewpoints and beaches nearby, asks a **local open-weight model** (Gemma) to pick the best fit, and gives you a small "outing card" you can save. Then you put the phone away and go outside.
 
-It was built for the Hacktoberfest Open-Source AI Challenge, Week 1 ("Touch Grass").
+The repository is named **`blaze-and-back`** after the trail blaze markers painted on trees and stones, and the idea of a round-trip outing bounded by a time budget. It was built for the Hacktoberfest Open-Source AI Challenge, Week 1 ("Touch Grass").
 
-- The model runs on your own machine through [Ollama](https://ollama.com). The default is Gemma.
-- Weather comes from [Open-Meteo](https://open-meteo.com) and places come from [OpenStreetMap](https://www.openstreetmap.org) (through the Overpass API). Both are open data with no API key.
+- The model runs on your own machine through [Ollama](https://ollama.com). Tested with `gemma2:9b`.
+- Weather comes from [Open-Meteo](https://open-meteo.com) and places come from [OpenStreetMap](https://www.openstreetmap.org) (Overpass API with automatic Nominatim fallback). Both are open data with no API key.
 - Your feedback (accepted, skipped, done) is stored in a local SQLite file and never leaves your machine.
+- Features custom activity input and a **"✨ Surprise me"** mode for spontaneous explorations when you don't know what you want to do.
 
 ## How it works
 
