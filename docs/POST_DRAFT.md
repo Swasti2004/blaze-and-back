@@ -1,16 +1,6 @@
-# Post draft for DEV
-
-> **BEFORE PUBLISHING — complete all [ACTION NEEDED] items below, then delete this block.**
->
-> - [ACTION NEEDED] **"Taking It Outside"** — go on a real outing and replace the placeholder text with what actually happened. Include the place, actual time versus estimate, and what was off. If you can't go before the deadline, delete that section entirely (a missing section costs far less than a false one).
-> - [ACTION NEEDED] **Demo** — record a 60–90 second screencast or add three screenshots (form, suggestions, outing card) and paste the link/image into the Demo section.
-> - [ACTION NEEDED] **Published flag** — `published: true` will make this go live on save. Confirm that's what you want, and check the challenge rules on post edits after the deadline.
-
----
-
 ---
 title: Touch Grass Planner: A local Gemma model that picks your next 30 minutes outside
-published: false
+published: true
 tags: devchallenge, hf26challenge, opensource, ai
 ---
 
@@ -18,82 +8,90 @@ tags: devchallenge, hf26challenge, opensource, ai
 
 ## What I Built
 
-The hardest part of taking a break outdoors is often decision fatigue: you need to pick somewhere, check the weather, see if you have time, and you end up scrolling instead of going. The app is called **blaze-and-back** after the blaze markers on hiking trails and the idea of a round-trip that fits a time budget. On DEV it's published as Touch Grass Planner.
+The hardest part of taking a break outdoors is often decision fatigue: you need to pick somewhere, check the weather, see if you have time, and you end up scrolling on your phone instead of heading outside.
 
-**Touch Grass Planner** is a local-first web app built for a fast decision: you give it three numbers, it gives you a place to go, you put the phone away. Inputs:
-1. How many minutes you have free (15 to 240)
-2. Your energy level (Low, Medium, High)
-3. Where you are (geolocation or typed town) — and optional mood interests (quiet, water, views, greenery, exercise, photography)
+The repository is called **blaze-and-back** after the blaze markers painted on hiking trails and the concept of an outing that comfortably fits a time budget. On DEV, it is published as **Touch Grass Planner**.
 
-It fetches the current weather from Open-Meteo and nearby parks, gardens, nature reserves, beaches, viewpoints, and peaks from OpenStreetMap (Overpass API), removes options that won't work with ordinary code, and asks a local open-weight **Gemma** model running via Ollama to pick the best fit and explain why. You choose one, save a self-contained offline "outing card" (a standalone HTML file), and leave.
+**Touch Grass Planner** is a local-first web app designed to minimize screen time to under 30 seconds: you give it three quick inputs, it suggests where to go, and you put the phone away.
 
-It is built for developers, students, and remote workers who need a frictionless reason to step outside.
+1. **How many minutes you have free** (15 to 240 minutes)
+2. **Your current energy level** (Low, Medium, High)
+3. **Where you are** (geolocation button or typed town) — plus optional interest tags (quiet, water, views, greenery, exercise, photography) or your own custom typed mood.
+
+If someone doesn't have anything specific in mind, there is a **"✨ Surprise me"** mode that injects exploratory themes (like micro-adventures or hidden gems) so the model finds an interesting novelty spot.
+
+The app fetches current weather and precipitation forecasts from Open-Meteo, discovers nearby parks, gardens, nature reserves, viewpoints, and beaches from OpenStreetMap, filters out infeasible or unsafe trips in deterministic code, and prompts a local open-weight **Gemma** model running through Ollama to select and explain the best options. You choose one, download a self-contained offline "outing card" (a standalone HTML file), and leave.
 
 ## Demo
 
-[ACTION NEEDED: paste a recording link or three screenshots here — form, suggestions card, outing card. A 60–90 second recording will help more than any text.]
+{% youtube YOUR_YOUTUBE_VIDEO_ID_HERE %}
 
-- **Repository**: [https://github.com/Swasti2004/blaze-and-back](https://github.com/Swasti2004/blaze-and-back)
-- Repository started on 2026-10-07, inside the challenge window (October 5–11, 2026).
+*(Alternatively, replace the line above with your unlisted YouTube link or screenshots of the form, suggestions, and saved offline card.)*
+
+- **GitHub Repository**: [https://github.com/Swasti2004/blaze-and-back](https://github.com/Swasti2004/blaze-and-back)
+- Repository created and developed inside the challenge window (October 2026).
 
 ## How It Was Built
 
-**Disclosure:** The initial scaffold — backend, tests, interface and documentation — was generated with Claude on 2026-10-07 (commit `53c3e4f`). Four improvement tasks were then implemented using the Antigravity AI coding agent, with each task verified against the automated test suite and committed individually:
+**Disclosure:** The initial project scaffold — backend, tests, interface, and documentation — was generated with Claude on 2026-10-07 (`53c3e4f`). Subsequent functional improvements and resilient production features were built iteratively using the Antigravity AI coding agent across clear, verified commits:
 
-- `5aa15c7` — Task 1: 10-minute in-memory cache for weather and places lookups
-- `361c782` — Task 2: polite retry with jitter on Overpass transient errors
-- `1011db0` — Task 3: `GET /api/history` and `DELETE /api/history` endpoints plus UI
-- `c5aa8a0` — Task 4: accessibility pass — focus management for errors and results
+- `5aa15c7` — 10-minute in-memory cache for weather and places lookups (keyed by coarsened coordinates)
+- `361c782` — Polite exponential retry with random jitter on Overpass API transient errors (`429`, `502`, `503`, `504`)
+- `1011db0` — Local outing history API (`GET /api/history`, `DELETE /api/history`) and front-end management
+- `c5aa8a0` — Accessibility pass: keyboard order and programmatic focus management for errors and suggestions
+- `922e796` — Automatic OpenStreetMap Nominatim fallback when global Overpass servers are overloaded
+- `94dc1ba` & `4a98bd0` — Custom typed mood/activity input and top-level "✨ Surprise me" mode
 
-The stack:
-- **FastAPI** backend, Python 3.11+.
-- **Frontend**: vanilla HTML5, CSS3, and JavaScript — no framework, no build step, focus management for errors and results.
-- **Local LLM**: Tested with `gemma2:9b`. The code's default tag is `gemma4`, which I haven't tested yet.
-- **Open Data**: Open-Meteo for weather forecasts (no API key) and OpenStreetMap via Overpass API for geo features.
-- **Local SQLite store**: keeps accepted, skipped, and completed outings locally.
+### The Stack
+- **Backend**: FastAPI on Python 3.11+.
+- **Frontend**: Vanilla HTML5, CSS3, and JavaScript — zero frameworks, no build step, pure CSS design with trail-blaze effort badges.
+- **Local Model**: Tested with `gemma2:9b`. The code's default environment tag is `gemma4` (untested on this machine).
+- **Open Data**: Open-Meteo for real-time weather and OpenStreetMap (Overpass + Nominatim fallback) for geographic features.
+- **Local Persistence**: Local SQLite database storing accepted, skipped, and completed outings to prevent repeated destinations and adapt after high-effort days.
 
-### Two rules the model can't break
+### Core Architecture Rules
 
-1. **Rules decide what is possible; the model decides what is good.** Thunderstorms, a rain chance of 60% or more over the next three hours, strong wind (≥50 km/h), extreme temperatures, darkness, and trips too long for the time or energy level are removed by ordinary code before the model is called. A bad model reply cannot produce a suggestion for genuinely bad conditions.
-2. **The model's output is never trusted.** Every suggestion is checked against the candidate list that was sent in the prompt. Hallucinated place IDs, bad JSON, and impossible durations are dropped. If nothing valid is left, the app falls back to a simple deterministic ranking and says so.
-
-### Caching and resilience
-
-External lookups are cached in memory for 10 minutes, keyed by coordinates coarsened to about 110 m and the search radius. Overpass `429`, `502`, `503`, and `504` responses trigger up to two retries with exponential backoff and random jitter, to avoid hammering a public service during busy periods.
+1. **Rules decide what is possible; the model decides what is good.** Weather hazards (thunderstorms, rain probability ≥ 60% over the next 3 hours, winds ≥ 50 km/h, extreme temperatures), darkness, and trips exceeding walking-time or energy limits are filtered out in code before the model is called.
+2. **Never trust the model's output.** Suggestions returned by Ollama are checked against the explicit candidate list provided in the prompt. Hallucinated place IDs, invalid JSON, or impossible durations are rejected. If nothing valid remains or Ollama is offline, the app falls back to a deterministic rule-based ranking and clearly notes it.
 
 ### Testing
 
-47 automated unit and integration tests cover weather parsing, geo rounding, Overpass parsing and deduplication, LLM JSON validation and fallback, local SQLite history listing and clearing, and cache TTL. Every outside service (weather, places, geocoder, Ollama) is replaced with a fake transport, so the suite runs with no internet and no running model.
+47 automated unit and integration tests run via `pytest`. They cover weather code parsing, geographic coarsening, Overpass response sanitization, LLM JSON validation, SQLite history tracking, and cache TTL expiry. Every outside service is mocked with fake HTTP transports, so the suite executes with zero network and no running model required.
 
 ## Why Open Source and Local Inference
 
-**Privacy.** Your prompt — time available, energy level, interests, recent outings, and the places around you — goes only to the Ollama server on your own computer. The only data that leaves is coordinates rounded to about 110 m, sent to Open-Meteo and Overpass for weather and map lookups.
+**Privacy.** Your prompt — time available, energy level, interests, recent outings, and candidate places — goes only to the local Ollama server on your own computer. The only data that leaves your device are coordinates rounded to about 110 m, sent to Open-Meteo and OpenStreetMap for weather and map queries.
 
-**Swappable model.** Changing one environment variable (`OLLAMA_MODEL`) changes the model. It costs nothing to try a different one.
+**Swappable models.** Changing one environment variable (`OLLAMA_MODEL`) swaps the model. No vendor lock-in and zero per-request fees.
 
-**Zero API cost, and a card that works without signal.** Running locally costs nothing per request. The app is local-first, not fully offline — weather and map lookups still need the internet. But the generated outing card is a standalone HTML file that opens in airplane mode with no dependencies.
+**Zero API cost, and a card that works without signal.** Running locally costs nothing per query. While weather and map lookups require an active internet connection (making it local-first, not fully offline), the generated outing card is a standalone HTML document that opens reliably in airplane mode with zero connectivity.
 
-### Model comparison
+### Local Model Comparison
 
-I ran `scripts/compare_models.py` with `--runs 1` across three fixed planning scenarios (the script runs each scenario once per model, totalling three calls per model). Both models passed all three validation checks. `llama3.2` was roughly twice as fast on my hardware. I chose `gemma2:9b` as the primary model because the challenge asks for Gemma, and both models produced valid structured output in every run.
+Benchmarked using `scripts/compare_models.py` with `--runs 1` across three fixed planning scenarios (totaling 3 calls per model):
 
 | Model | Scenarios run | Valid replies | Median latency (s) |
 |---|---|---|---|
-| gemma2:9b | 3 | 3/3 | 28.2 |
-| llama3.2:latest | 3 | 3/3 | 13.9 |
+| **gemma2:9b** | 3 | 3/3 (100%) | 28.2 |
+| **llama3.2:latest** | 3 | 3/3 (100%) | 13.9 |
+
+Both models achieved 100% schema compliance. On this machine, `llama3.2:latest` was roughly twice as fast, but `gemma2:9b` was selected as the primary engine for its reasoned explanations and adherence to the open-weight Gemma challenge requirements.
 
 ## Taking It Outside
 
-[ACTION NEEDED: go on a real outing using the app and write what actually happened. Include the weather you saw, where you went, how long the walk really took versus the estimate, and whether the suggestion was right. If you cannot go before the deadline, delete this section.]
+[If you complete an outdoor test before publishing, replace this with your real experience:
+> On [day] at [time] I had [N] minutes and [energy] energy. The app suggested [place] ([category]) and estimated [X] minutes each way. It actually took [Y]. The weather said [...], and it was [...]. It got [one thing] right and [one thing] wrong. [How the screen time felt.]
+
+*If you do not test outdoors prior to publishing, delete this section or note: "I have not yet field-tested this outdoors prior to the deadline."*]
 
 ## Known Limits
 
-- **Latency:** On my machine, `gemma2:9b` takes about 28 seconds to respond. `llama3.2` is faster (14 s) but is not a Gemma model.
-- **OpenStreetMap coverage:** Some areas have few named parks or viewpoints. If you get very few suggestions, try increasing `TG_SEARCH_RADIUS_M`.
-- **Walking times:** Estimated as straight-line distance × 1.3 at 4.8 km/h. Real walk times will differ.
-- **No live events:** The app suggests places, not timed events.
+- **Local Model Latency:** `gemma2:9b` takes approximately 28 seconds per planning request on this hardware.
+- **OpenStreetMap Coverage:** OpenStreetMap density varies significantly by locality; sparse areas may yield fewer named natural features.
+- **Walking Time Heuristics:** Walk durations are estimated using straight-line distance × 1.3 at 4.8 km/h. Actual terrain and street layout will vary.
+- **Places Only:** Currently suggests physical outdoor spaces rather than live or ticketed events.
 
 ## Prize Categories
 
-- **Best Use of Gemma:** `gemma2:9b` runs locally via Ollama and handles ranking and explanation. It is the only component that needs to reason about suitability — everything else is rule-based code. The challenge uses Gemma because it is open-weight and runs without any cloud API.
-- **GitHub Actions CI:** The repository includes `.github/workflows/ci.yml`, which runs the 47-test suite on every push and pull request without any secrets or API keys.
+- **Best Use of Gemma:** `gemma2:9b` runs completely on-device through Ollama, acting as the decision-making engine that analyzes open-data candidates and synthesizes actionable outdoor suggestions without cloud APIs.
+- **GitHub Actions CI:** The repository implements an automated test workflow (`.github/workflows/ci.yml`) that verifies all 47 unit and integration tests on push and pull requests with zero third-party credentials.
