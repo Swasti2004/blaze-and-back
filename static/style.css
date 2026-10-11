@@ -218,7 +218,14 @@ a.button.secondary:hover { background: #dbe6df; }
 
 button[disabled] { opacity: 0.6; cursor: progress; }
 
-#go { width: 100%; }
+.submit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.submit-actions button {
+  width: 100%;
+}
 
 /* ---------- messages ---------- */
 .error {

@@ -139,15 +139,19 @@ function describeError(data) {
 function setBusy(busy) {
   state.busy = busy;
   const button = $("go");
+  const surprise = $("surprise");
   button.disabled = busy;
+  if (surprise) surprise.disabled = busy;
   button.textContent = busy ? "Asking the local model. This can take up to a minute." : "Find somewhere outside";
 }
 
-$("plan-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function requestSuggestions(overrideInterests = null) {
   if (state.busy) return;
   showError("");
   const body = readForm();
+  if (overrideInterests) {
+    body.interests = overrideInterests;
+  }
   if (!state.coords && !body.place) {
     showError("Use your location or type a town or city first.");
     return;
@@ -171,7 +175,28 @@ $("plan-form").addEventListener("submit", async (event) => {
   } finally {
     setBusy(false);
   }
+}
+
+$("plan-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  requestSuggestions();
 });
+
+const SURPRISE_THEMES = [
+  ["hidden gem", "surprise", "curiosity"],
+  ["peaceful escape", "views", "nature"],
+  ["micro-adventure", "explore", "scenic"],
+  ["quiet corner", "greenery", "fresh air"],
+  ["scenic stroll", "water", "views"],
+];
+
+const surpriseBtn = $("surprise");
+if (surpriseBtn) {
+  surpriseBtn.addEventListener("click", () => {
+    const pick = SURPRISE_THEMES[Math.floor(Math.random() * SURPRISE_THEMES.length)];
+    requestSuggestions(pick);
+  });
+}
 
 // ---------- results ----------
 function weatherLine(w) {
