@@ -24,10 +24,9 @@ The app fetches current weather and precipitation forecasts from Open-Meteo, dis
 
 ## Demo
 
-{% youtube YOUR_YOUTUBE_VIDEO_ID_HERE %}
+{% youtube DMELZJ57C5Y %}
 
-*(Alternatively, replace the line above with your unlisted YouTube link or screenshots of the form, suggestions, and saved offline card.)*
-
+- **Direct Video Link**: [Watch the walkthrough demo on YouTube](https://youtu.be/DMELZJ57C5Y)
 - **GitHub Repository**: [https://github.com/Swasti2004/blaze-and-back](https://github.com/Swasti2004/blaze-and-back)
 - Repository created and developed inside the challenge window (October 2026).
 
