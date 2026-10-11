@@ -170,6 +170,10 @@ input[type="text"] {
   color: #fff;
 }
 
+label[for="custom-interests"] {
+  margin-top: 1rem;
+}
+
 .segments input:focus-visible + label,
 .chips input:focus-visible + label,
 input[type="text"]:focus-visible,

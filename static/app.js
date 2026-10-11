@@ -102,10 +102,21 @@ $("locate").addEventListener("click", () => {
 });
 
 function readForm() {
+  const interests = [...document.querySelectorAll('input[name="interest"]:checked')].map((i) => i.value);
+  const custom = $("custom-interests") ? $("custom-interests").value.trim() : "";
+  if (custom) {
+    for (const part of custom.split(",")) {
+      const clean = part.trim().toLowerCase();
+      if (clean && !interests.includes(clean)) {
+        interests.push(clean);
+      }
+    }
+  }
+
   const body = {
     minutes: Number($("minutes").value),
     energy: document.querySelector('input[name="energy"]:checked').value,
-    interests: [...document.querySelectorAll('input[name="interest"]:checked')].map((i) => i.value),
+    interests: interests.slice(0, 8),
   };
   if (state.coords) {
     body.lat = state.coords.lat;
