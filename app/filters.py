@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 
 from .models import Energy, Place, Weather
 
-MIN_STAY_MIN = 10  # a trip is not worth it if you can only stay a few minutes
-MAX_CANDIDATES = 12  # keeps the prompt short for small local models
+MIN_STAY_MIN = 8  # a trip is not worth it if you can only stay a few minutes
+MAX_CANDIDATES = 25  # ample candidates for plenty of diverse options
 MAX_ONE_WAY_MIN: dict[str, int] = {"low": 15, "medium": 30, "high": 60}
 
 # Weather thresholds are simple heuristics, not medical or safety guarantees.

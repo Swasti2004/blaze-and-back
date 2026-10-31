@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4a44"/>
+      <stop offset="100%" stop-color="#0f2623"/>
+    </linearGradient>
+    <linearGradient id="blazeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2b6cde"/>
+      <stop offset="50%" stop-color="#38a169"/>
+      <stop offset="100%" stop-color="#e9b91e"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Base rounded tile -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Inner circular glow -->
+  <circle cx="256" cy="256" r="190" fill="#245a53" opacity="0.4"/>
+  
+  <!-- Compass / trail ring -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#a3c4b8" stroke-width="6" stroke-dasharray="16 12" opacity="0.6"/>
+
+  <!-- Iconic Trail Blaze marker -->
+  <g filter="url(#shadow)">
+    <!-- Trail blaze pill -->
+    <rect x="226" y="110" width="60" height="150" rx="16" fill="#fefefe" stroke="#15262b" stroke-width="8"/>
+    <rect x="236" y="125" width="40" height="55" rx="8" fill="#e9b91e"/>
+    <rect x="236" y="190" width="40" height="55" rx="8" fill="#2b6cde"/>
+    
+    <!-- Fresh grass sprout / leaf blooming at the base -->
+    <!-- Left blade -->
+    <path d="M 256 385 C 230 350 170 340 160 270 C 190 280 235 315 256 385 Z" fill="#68d391" stroke="#15262b" stroke-width="6" stroke-linejoin="round"/>
+    <!-- Right blade -->
+    <path d="M 256 385 C 282 350 345 330 352 260 C 325 275 275 315 256 385 Z" fill="#48bb78" stroke="#15262b" stroke-width="6" stroke-linejoin="round"/>
+    <!-- Center stem & soil accent -->
+    <path d="M 256 260 L 256 395" stroke="#38a169" stroke-width="8" stroke-linecap="round"/>
+    <ellipse cx="256" cy="400" rx="65" ry="14" fill="#123430" opacity="0.7"/>
+  </g>
+</svg>

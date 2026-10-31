@@ -77,7 +77,7 @@ def rank_fallback(
     interests: list[str],
     history: History,
     weather: Weather,
-    limit: int = 3,
+    limit: int = 6,
 ) -> list[Pick]:
     ranked = sorted(
         candidates,

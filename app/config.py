@@ -42,7 +42,7 @@ class Settings:
     db_path: str = "data/touchgrass.db"
 
     # Behaviour.
-    search_radius_m: int = 3000
+    search_radius_m: int = 5000
     coord_decimals: int = 3  # 3 decimals is roughly 110 m of precision
     allow_after_dark: bool = False
 

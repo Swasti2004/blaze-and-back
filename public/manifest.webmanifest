@@ -1,0 +1,58 @@
+{
+  "id": "/?source=pwa",
+  "name": "Touch Grass Planner",
+  "short_name": "Touch Grass",
+  "description": "Pocket planner for short outdoor breaks. Quick suggestions for nearby nature, parks, and walks.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#edf2ee",
+  "theme_color": "#1d4a44",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["lifestyle", "health", "utilities", "travel"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick 30m Walk",
+      "short_name": "30m Walk",
+      "description": "Find a quick 30-minute outdoor break",
+      "url": "/?minutes=30",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "✨ Surprise Me",
+      "short_name": "Surprise",
+      "description": "Find a spontaneous outdoor adventure",
+      "url": "/?surprise=true",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-"""Nearby outdoor places from OpenStreetMap via the Overpass API (open data)."""
+"""Nearby outdoor places from OpenStreetMap via Overpass API and Nominatim (open data)."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ from .geo import coarsen, haversine_m
 from .models import Place
 
 RETRY_STATUS_CODES = {429, 502, 503, 504}
-MAX_RETRIES = 2
+MAX_RETRIES = 1
 
 # Walking assumptions (documented in docs/ARCHITECTURE.md).
 DETOUR_FACTOR = 1.3  # streets are longer than straight lines
 WALK_M_PER_MIN = 80  # about 4.8 km/h
 DEDUPE_RADIUS_M = 300
-MAX_PLACES = 25
+MAX_PLACES = 40
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
@@ -26,11 +26,12 @@ _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 def build_query(lat: float, lon: float, radius_m: int) -> str:
     around = f"(around:{radius_m},{lat},{lon})"
     return (
-        "[out:json][timeout:25];\n"
+        "[out:json][timeout:5];\n"
         "(\n"
-        f'  nwr["leisure"~"^(park|garden|nature_reserve)$"]["name"]{around};\n'
-        f'  nwr["tourism"="viewpoint"]["name"]{around};\n'
-        f'  nwr["natural"~"^(beach|peak)$"]["name"]{around};\n'
+        f'  nwr["leisure"~"^(park|garden|nature_reserve|recreation_ground|common|pitch)$"]["name"]{around};\n'
+        f'  nwr["tourism"~"^(viewpoint|attraction)$"]["name"]{around};\n'
+        f'  nwr["natural"~"^(beach|peak|wood|water)$"]["name"]{around};\n'
+        f'  nwr["landuse"~"^(village_green|forest|meadow)$"]["name"]{around};\n'
         ");\n"
         "out center 80;"
     )
@@ -38,17 +39,37 @@ def build_query(lat: float, lon: float, radius_m: int) -> str:
 
 def _category(tags: dict) -> str | None:
     leisure = tags.get("leisure")
-    if leisure == "park":
+    if leisure in {"park", "recreation_ground", "common", "pitch"}:
         return "park"
     if leisure == "garden":
         return "garden"
     if leisure == "nature_reserve":
         return "nature"
-    if tags.get("tourism") == "viewpoint":
-        return "viewpoint"
+
+    landuse = tags.get("landuse")
+    if landuse in {"village_green", "grass", "recreation_ground"}:
+        return "park"
+    if landuse in {"forest", "meadow"}:
+        return "nature"
+
     natural = tags.get("natural")
     if natural in {"beach", "peak"}:
         return natural
+    if natural in {"wood", "scrub"}:
+        return "nature"
+    if natural == "water":
+        return "beach"
+
+    tourism = tags.get("tourism")
+    if tourism == "viewpoint":
+        return "viewpoint"
+    if tourism == "attraction":
+        return "park"
+
+    boundary = tags.get("boundary")
+    if boundary in {"national_park", "protected_area"}:
+        return "nature"
+
     return None
 
 
@@ -112,37 +133,59 @@ def parse_overpass(payload: dict, lat: float, lon: float) -> list[Place]:
 async def fetch_places_nominatim(
     client: httpx.AsyncClient, lat: float, lon: float, radius_m: int, decimals: int
 ) -> list[Place]:
-    """Fallback to OpenStreetMap Nominatim when Overpass servers are overloaded."""
+    """Fast concurrent fallback to OpenStreetMap Nominatim."""
     lat_c, lon_c = coarsen(lat, lon, decimals)
-    delta = (radius_m / 111_000) * 1.2
+    delta = (radius_m / 111_000) * 1.3
     viewbox = f"{lon_c - delta:.4f},{lat_c + delta:.4f},{lon_c + delta:.4f},{lat_c - delta:.4f}"
 
-    queries = ["park", "garden", "nature reserve", "viewpoint", "beach"]
-    found: list[Place] = []
+    categories_to_query = [
+        ("park", "park"),
+        ("garden", "garden"),
+        ("nature reserve", "nature"),
+        ("viewpoint", "viewpoint"),
+        ("beach", "beach"),
+        ("forest", "nature"),
+        ("lake", "beach"),
+        ("recreation ground", "park"),
+    ]
 
-    for q in queries:
+    async def search_query(query_str: str, cat: str):
         try:
             res = await client.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={
-                    "q": q,
+                    "q": query_str,
                     "format": "jsonv2",
                     "limit": 10,
                     "viewbox": viewbox,
                     "bounded": 1,
                 },
-                headers={"User-Agent": "touch-grass-planner/0.1 (open-source hackathon project)"},
+                headers={"User-Agent": "touch-grass-planner/0.1 (open-source PWA)"},
+                timeout=3.5,
             )
-            if res.status_code != 200:
-                continue
-            for item in res.json():
+            if res.status_code == 200:
+                return res.json(), cat
+        except Exception:
+            pass
+        return [], cat
+
+    tasks = [search_query(q, cat) for q, cat in categories_to_query]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    found: list[Place] = []
+    for res_item in results:
+        if isinstance(res_item, tuple):
+            items, cat = res_item
+            for item in items:
                 raw_name = item.get("name") or (item.get("display_name", "").split(",")[0])
                 name = _clean_name(raw_name)
                 if not name:
                     continue
-                p_lat, p_lon = float(item["lat"]), float(item["lon"])
+                try:
+                    p_lat, p_lon = float(item["lat"]), float(item["lon"])
+                except (KeyError, ValueError):
+                    continue
                 distance = haversine_m(lat, lon, p_lat, p_lon)
-                cat = "viewpoint" if "view" in q else ("garden" if "garden" in q else ("beach" if "beach" in q else "park"))
                 found.append(
                     Place(
                         id=f"node/{item.get('place_id', hash(name))}",
@@ -154,8 +197,6 @@ async def fetch_places_nominatim(
                         walk_minutes=walk_minutes(distance),
                     )
                 )
-        except Exception:
-            continue
 
     found.sort(key=lambda p: p.distance_m)
     kept: list[Place] = []
@@ -181,27 +222,35 @@ async def fetch_places(
     last_error: Exception | None = None
     for attempt in range(MAX_RETRIES + 1):
         try:
-            response = await client.post(url, data={"data": query})
+            response = await client.post(url, data={"data": query}, timeout=4.5)
             if response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
-                delay = 0.5 * (2**attempt) + random.uniform(0.1, 0.3)
+                delay = 0.3 * (2**attempt) + random.uniform(0.05, 0.15)
                 await asyncio.sleep(delay)
                 continue
             response.raise_for_status()
-            return parse_overpass(response.json(), lat, lon)
+            places = parse_overpass(response.json(), lat, lon)
+            if places:
+                return places
+            # If Overpass returned 0 places, fall through to Nominatim for more options
+            break
         except (httpx.HTTPStatusError, httpx.RequestError) as exc:
             last_error = exc
             if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
-                delay = 0.5 * (2**attempt) + random.uniform(0.1, 0.3)
+                delay = 0.3 * (2**attempt) + random.uniform(0.05, 0.15)
                 await asyncio.sleep(delay)
                 continue
-            if attempt == MAX_RETRIES:
-                # Fallback to OpenStreetMap Nominatim before failing
-                try:
-                    fallback_places = await fetch_places_nominatim(client, lat, lon, radius_m, decimals)
-                    if fallback_places:
-                        return fallback_places
-                except Exception:
-                    pass
-                raise exc
-            await asyncio.sleep(0.5)
-    raise httpx.HTTPError("Max retries exceeded") from last_error
+            break
+
+    # Swift fallback to Nominatim (parallel query)
+    try:
+        fallback_places = await fetch_places_nominatim(client, lat, lon, radius_m, decimals)
+        if fallback_places:
+            return fallback_places
+    except Exception:
+        pass
+
+    # If an HTTP error occurred and Nominatim found nothing, raise for outer handler
+    if last_error is not None:
+        raise last_error
+
+    return []

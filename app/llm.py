@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from .config import Settings
 from .models import Pick
 
-MAX_PICKS = 3
+MAX_PICKS = 6
 MIN_DURATION = 5
 
 # JSON schema passed to model structured-output format option.
@@ -117,7 +117,11 @@ async def ask_model(client: httpx.AsyncClient, settings: Settings, system: str, 
         except Exception as exc:
             raise LLMError(f"OpenAI API error: {exc}") from exc
 
-    # 4. Local Ollama model
+    # 4. Local Ollama model (skipped on Vercel/cloud where localhost doesn't exist)
+    import os
+    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("RENDER"):
+        raise LLMError("Fast Cloud Mode: rule-based ranking activated for instant response.")
+
     body = {
         "model": settings.ollama_model,
         "messages": [
@@ -130,7 +134,7 @@ async def ask_model(client: httpx.AsyncClient, settings: Settings, system: str, 
     }
     try:
         response = await client.post(
-            f"{settings.ollama_url}/api/chat", json=body, timeout=settings.ollama_timeout_s
+            f"{settings.ollama_url}/api/chat", json=body, timeout=min(settings.ollama_timeout_s, 2.5)
         )
         response.raise_for_status()
         data = response.json()
