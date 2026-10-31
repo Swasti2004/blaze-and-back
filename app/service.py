@@ -110,7 +110,8 @@ async def suggest(
 
     weather, places = cached_weather, cached_places
 
-    result = filter_places(places, weather, req.minutes, req.energy, settings.allow_after_dark)
+    allow_dark = req.allow_after_dark or settings.allow_after_dark
+    result = filter_places(places, weather, req.minutes, req.energy, allow_dark)
     if result.blocked_reason:
         return SuggestResponse(
             suggestions=[],
@@ -124,6 +125,8 @@ async def suggest(
     by_id = {p.id: p for p in result.candidates}
     allowed = {p.id: stay_minutes(p, req.minutes) for p in result.candidates}
     notes: list[str] = []
+    if not weather.is_day:
+        notes.append("🌙 Evening outing: Stick to well-lit paths and familiar open spaces after dark.")
     
     active_cloud = (
         settings.gemini_model if settings.gemini_api_key else

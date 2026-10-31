@@ -44,7 +44,7 @@ class Settings:
     # Behaviour.
     search_radius_m: int = 5000
     coord_decimals: int = 3  # 3 decimals is roughly 110 m of precision
-    allow_after_dark: bool = False
+    allow_after_dark: bool = True
 
     user_agent: str = "touch-grass-planner/0.1 (open-source hackathon project)"
 
@@ -68,5 +68,5 @@ class Settings:
             db_path=os.getenv("TG_DB_PATH", default_db),
             search_radius_m=int(os.getenv("TG_SEARCH_RADIUS_M", d.search_radius_m)),
             coord_decimals=int(os.getenv("TG_COORD_DECIMALS", d.coord_decimals)),
-            allow_after_dark=_env_bool("TG_ALLOW_AFTER_DARK", d.allow_after_dark),
+            allow_after_dark=_env_bool("TG_ALLOW_AFTER_DARK", True),
         )

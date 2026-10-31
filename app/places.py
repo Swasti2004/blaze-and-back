@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import random
 import re
 
 import httpx
 
 from .geo import coarsen, haversine_m
 from .models import Place
-
-RETRY_STATUS_CODES = {429, 502, 503, 504}
-MAX_RETRIES = 1
 
 # Walking assumptions (documented in docs/ARCHITECTURE.md).
 DETOUR_FACTOR = 1.3  # streets are longer than straight lines
@@ -219,38 +215,49 @@ async def fetch_places(
     lat_c, lon_c = coarsen(lat, lon, decimals)
     query = build_query(lat_c, lon_c, radius_m)
 
-    last_error: Exception | None = None
-    for attempt in range(MAX_RETRIES + 1):
+    async def try_overpass():
         try:
-            response = await client.post(url, data={"data": query}, timeout=4.5)
-            if response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
-                delay = 0.3 * (2**attempt) + random.uniform(0.05, 0.15)
-                await asyncio.sleep(delay)
-                continue
+            response = await client.post(url, data={"data": query}, timeout=3.5)
+            if response.status_code in {429, 502, 503, 504}:
+                await asyncio.sleep(0.3)
+                response = await client.post(url, data={"data": query}, timeout=3.5)
             response.raise_for_status()
             places = parse_overpass(response.json(), lat, lon)
             if places:
                 return places
-            # If Overpass returned 0 places, fall through to Nominatim for more options
-            break
-        except (httpx.HTTPStatusError, httpx.RequestError) as exc:
-            last_error = exc
-            if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
-                delay = 0.3 * (2**attempt) + random.uniform(0.05, 0.15)
-                await asyncio.sleep(delay)
-                continue
-            break
+        except Exception:
+            pass
+        return None
 
-    # Swift fallback to Nominatim (parallel query)
-    try:
-        fallback_places = await fetch_places_nominatim(client, lat, lon, radius_m, decimals)
-        if fallback_places:
-            return fallback_places
-    except Exception:
-        pass
+    async def try_nominatim():
+        try:
+            places = await fetch_places_nominatim(client, lat, lon, radius_m, decimals)
+            if places:
+                return places
+        except Exception:
+            pass
+        return None
 
-    # If an HTTP error occurred and Nominatim found nothing, raise for outer handler
-    if last_error is not None:
-        raise last_error
+    # Race Overpass and Nominatim concurrently to ensure lightning response
+    t_overpass = asyncio.create_task(try_overpass())
+    t_nominatim = asyncio.create_task(try_nominatim())
+
+    done, pending = await asyncio.wait([t_overpass, t_nominatim], return_when=asyncio.FIRST_COMPLETED)
+
+    for task in done:
+        res = task.result()
+        if res:
+            for p in pending:
+                p.cancel()
+            return res
+
+    # Wait for the pending one if the first failed
+    for task in pending:
+        try:
+            res = await task
+            if res:
+                return res
+        except Exception:
+            pass
 
     return []

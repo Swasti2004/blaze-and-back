@@ -19,6 +19,7 @@ class SuggestRequest(BaseModel):
     minutes: int = Field(ge=15, le=240)
     energy: Energy = "medium"
     interests: list[str] = Field(default_factory=list, max_length=8)
+    allow_after_dark: bool = True
 
     @field_validator("interests")
     @classmethod
