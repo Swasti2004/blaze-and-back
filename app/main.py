@@ -43,9 +43,29 @@ def create_app(
     async def health(request: Request) -> dict:
         cfg: Settings = request.app.state.settings
         client: httpx.AsyncClient = request.app.state.client
-        status = {"ollama": False, "model": cfg.ollama_model, "model_available": False}
+
+        cloud_provider = None
+        cloud_model = None
+        if cfg.gemini_api_key:
+            cloud_provider = "Google Gemini Flash"
+            cloud_model = cfg.gemini_model
+        elif cfg.groq_api_key:
+            cloud_provider = "Groq"
+            cloud_model = cfg.groq_model
+        elif cfg.openai_api_key:
+            cloud_provider = "OpenAI"
+            cloud_model = cfg.openai_model
+
+        status = {
+            "ollama": False,
+            "model": cfg.ollama_model,
+            "model_available": False,
+            "cloud_provider": cloud_provider,
+            "cloud_model": cloud_model,
+            "fast_engine": True,
+        }
         try:
-            response = await client.get(f"{cfg.ollama_url}/api/tags", timeout=3.0)
+            response = await client.get(f"{cfg.ollama_url}/api/tags", timeout=1.5)
             response.raise_for_status()
             names = {m.get("name", "") for m in response.json().get("models", [])}
             status["ollama"] = True

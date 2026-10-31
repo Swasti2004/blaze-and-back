@@ -94,10 +94,15 @@ def rank_fallback(
         )
         if hits:
             reason += f" Matches your interest in {hits[0]}."
+        activity = _ACTIVITY.get(place.category, "Take a walk and enjoy being outside")
+        custom_interests = [i for i in interests if i not in _INTEREST_CATEGORIES]
+        if custom_interests and len(custom_interests[0]) <= 30:
+            activity = f"{custom_interests[0].capitalize()} around {place.name}"
+
         picks.append(
             Pick(
                 place_id=place.id,
-                activity=_ACTIVITY.get(place.category, "Take a walk and enjoy being outside"),
+                activity=activity,
                 reason=reason,
                 duration_minutes=max(MIN_DURATION, min(stay, MAX_DURATION)),
                 effort=effort_for(place),

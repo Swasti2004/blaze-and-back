@@ -124,8 +124,14 @@ async def suggest(
     by_id = {p.id: p for p in result.candidates}
     allowed = {p.id: stay_minutes(p, req.minutes) for p in result.candidates}
     notes: list[str] = []
+    
+    active_cloud = (
+        settings.gemini_model if settings.gemini_api_key else
+        (settings.groq_model if settings.groq_api_key else
+         (settings.openai_model if settings.openai_api_key else None))
+    )
     engine = "llm"
-    model: str | None = settings.ollama_model
+    model: str | None = active_cloud or settings.ollama_model
 
     try:
         prompt = build_user_prompt(

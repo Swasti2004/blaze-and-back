@@ -1,0 +1,13 @@
+services:
+  touch-grass-planner:
+    build: .
+    container_name: touch-grass-planner
+    ports:
+      - "8000:8000"
+    environment:
+      - TG_SEARCH_RADIUS_M=3000
+      - TG_COORD_DECIMALS=3
+      - TG_ALLOW_AFTER_DARK=false
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -2,17 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#1d4a44">
+  <meta name="description" content="Pocket planner for short outdoor breaks. Quick suggestions for nearby nature, parks, and walks.">
+  
+  <!-- Apple Mobile Web App Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Touch Grass">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  
+  <!-- Web App Manifest & Icons -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="alternate icon" type="image/png" href="/icons/icon-32.png">
+
   <title>Touch Grass Planner</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Offline status indicator -->
+  <div id="offline-banner" class="offline-banner" role="status" hidden>
+    <span class="offline-dot"></span>
+    <span>Offline mode — saved outings are still accessible.</span>
+  </div>
+
+  <!-- PWA Install prompt banner -->
+  <aside id="install-banner" class="install-banner" aria-label="Install app" hidden>
+    <div class="install-info">
+      <img src="/icons/icon-192.png" alt="" width="40" height="40" class="install-app-icon">
+      <div class="install-text">
+        <strong>Install Touch Grass</strong>
+        <p>Add to home screen for instant, offline outdoor planning.</p>
+      </div>
+    </div>
+    <div class="install-actions">
+      <button type="button" id="install-btn" class="install-cta">Install</button>
+      <button type="button" id="dismiss-install-btn" class="install-dismiss" aria-label="Dismiss banner">✕</button>
+    </div>
+  </aside>
+
+  <!-- iOS PWA Install instruction tooltip -->
+  <div id="ios-install-hint" class="ios-install-hint" role="dialog" aria-label="Install instructions for iOS" hidden>
+    <p>To install on iPhone/iPad: tap <span class="ios-icon">⎋</span> (Share) and select <strong>"Add to Home Screen"</strong> <span class="ios-icon">⊞</span>.</p>
+    <button type="button" id="dismiss-ios-hint" class="text-btn">Got it</button>
+  </div>
+
   <main>
     <header>
-      <h1>Touch Grass Planner</h1>
+      <div class="header-brand">
+        <span class="brand-blaze" aria-hidden="true"></span>
+        <h1>Touch Grass Planner</h1>
+      </div>
       <p class="lede">Tell it how long you have. It picks somewhere nearby, then you put the phone away.</p>
-      <p id="engine-status" class="status" role="status">Checking for the local model.</p>
+      <div class="header-status-row">
+        <p id="engine-status" class="status" role="status">Checking for the local model.</p>
+        <button type="button" id="manual-install-btn" class="install-badge-btn" hidden title="Install as app">📱 Install App</button>
+      </div>
     </header>
 
     <form id="plan-form" novalidate>
@@ -21,6 +68,14 @@
         <p class="big-number"><output id="minutes-out" for="minutes">45</output> <span>minutes</span></p>
         <label class="sr-only" for="minutes">Minutes free</label>
         <input id="minutes" name="minutes" type="range" min="15" max="240" step="5" value="45">
+        <div class="time-presets" aria-label="Quick time selection">
+          <button type="button" class="preset-btn" data-mins="15">15m</button>
+          <button type="button" class="preset-btn" data-mins="30">30m</button>
+          <button type="button" class="preset-btn active" data-mins="45">45m</button>
+          <button type="button" class="preset-btn" data-mins="60">60m</button>
+          <button type="button" class="preset-btn" data-mins="90">90m</button>
+          <button type="button" class="preset-btn" data-mins="120">2h</button>
+        </div>
       </fieldset>
 
       <fieldset class="energy">
@@ -37,11 +92,14 @@
 
       <fieldset class="where">
         <legend>Where are you?</legend>
-        <button type="button" id="locate" class="secondary">Use my location</button>
+        <button type="button" id="locate" class="secondary location-btn">
+          <svg class="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+          Use my location
+        </button>
         <p id="locate-status" class="hint" aria-live="polite"></p>
         <label for="place">Or type a town or city</label>
-        <input id="place" name="place" type="text" autocomplete="off" maxlength="120">
-        <p class="hint">Your coordinates go only to the app running on your own machine. It rounds them to about 100 m before looking up weather and places.</p>
+        <input id="place" name="place" type="text" autocomplete="off" maxlength="120" placeholder="e.g. Cambridge, Oxford, Seattle">
+        <p class="hint">Your coordinates stay private. Rounded to ~100m before looking up weather & parks.</p>
       </fieldset>
 
       <fieldset class="interests">
@@ -80,6 +138,10 @@
         <p id="outing-coords" class="hint"></p>
         <div class="actions">
           <button type="button" id="save-card" class="primary">Save card to this device</button>
+          <button type="button" id="share-card" class="secondary" title="Share with a friend" hidden>
+            <svg class="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share
+          </button>
           <a id="open-map" class="button secondary" target="_blank" rel="noopener noreferrer">Open in maps</a>
           <button type="button" id="mark-done" class="secondary">I went</button>
         </div>
@@ -97,7 +159,7 @@
     </section>
 
     <footer>
-      <p>Open data from OpenStreetMap and Open-Meteo. Suggestions come from an open-weight model running on this machine.</p>
+      <p>Open data from OpenStreetMap and Open-Meteo. Runs as a progressive web app on your phone or laptop.</p>
     </footer>
   </main>
   <script src="app.js"></script>
